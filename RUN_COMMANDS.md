@@ -24,13 +24,20 @@ One-shot terminal question (no browser):
 conda run -n vqa python vqa_ui.py --ask "What is the morphology of the nucleus?" --image cropped_wbc\WIN_20260924_15_54_02_Pro_wbc001.png --lang english
 ```
 
+**GPU is active** (GTX 1080 Ti, fp16): first question after starting ≈ 7 s
+(includes model load), every question after that ≈ 2 s.
+
 The `vqa` env (Python 3.11) has policy-compatible versions pinned:
-torch 2.15.0+cpu, transformers 5.23.0, peft 0.21.3, numpy 2.2.6,
-pandas 2.2.3, regex 2025.10.22, huggingface-hub 2.4.0, torchvision
-0.29.2+cpu, gradio 6.17.3. Don't `pip install -U` inside it — newest
-builds get blocked by the WDAC policy again.
+torch 2.5.1+cu121 (GPU), torchvision 0.20.1+cu121, transformers 4.55.4,
+peft 0.21.3, accelerate 1.3.0, huggingface-hub 0.36.0, numpy 2.2.6,
+pandas 2.2.3, regex 2025.10.22, gradio 6.17.3. Don't `pip install -U`
+inside it — newest builds get blocked by the WDAC policy again.
+(transformers must stay on 4.55.x: 5.x requires torch>=2.6, and older
+than 4.52 can't load the adapters' `language_model` key layout.)
 Base Qwen2-VL-2B weights are already cached in
 `C:\Users\assad\.cache\huggingface\hub` (no download needed).
+The GPU torch wheel is kept at `C:\QWEN\torch-2.5.1+cu121-...whl`
+so the env can be rebuilt without re-downloading.
 
 
 > **⚠ GPU training/eval is BLOCKED on this PC.** An enterprise WDAC
