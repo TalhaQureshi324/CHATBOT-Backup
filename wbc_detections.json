@@ -1,0 +1,552 @@
+{
+  "images": [
+    {
+      "id": 1,
+      "file_name": "WIN_20260924_15_46_35_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 2,
+      "file_name": "WIN_20260924_15_47_55_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 3,
+      "file_name": "WIN_20260924_15_53_23_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 4,
+      "file_name": "WIN_20260924_15_54_02_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 5,
+      "file_name": "WIN_20260924_15_56_04_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 6,
+      "file_name": "WIN_20260924_15_57_04_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 7,
+      "file_name": "WIN_20260924_15_58_10_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 8,
+      "file_name": "WIN_20260924_15_58_30_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 9,
+      "file_name": "WIN_20260924_16_03_24_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "id": 10,
+      "file_name": "WIN_20260924_16_04_24_Pro.jpg",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 1,
+      "bbox_xyxy": [
+        62,
+        510,
+        131,
+        576
+      ],
+      "bbox_coco": [
+        62,
+        510,
+        69,
+        66
+      ],
+      "area_px": 4554,
+      "file_name": "WIN_20260924_15_46_35_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 1,
+      "bbox_xyxy": [
+        1445,
+        618,
+        1491,
+        672
+      ],
+      "bbox_coco": [
+        1445,
+        618,
+        46,
+        54
+      ],
+      "area_px": 2484,
+      "file_name": "WIN_20260924_15_46_35_Pro_wbc002.png"
+    },
+    {
+      "id": 1,
+      "image_id": 3,
+      "bbox_xyxy": [
+        524,
+        27,
+        589,
+        72
+      ],
+      "bbox_coco": [
+        524,
+        27,
+        65,
+        45
+      ],
+      "area_px": 2925,
+      "file_name": "WIN_20260924_15_53_23_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 3,
+      "bbox_xyxy": [
+        1436,
+        1026,
+        1485,
+        1080
+      ],
+      "bbox_coco": [
+        1436,
+        1026,
+        49,
+        54
+      ],
+      "area_px": 2646,
+      "file_name": "WIN_20260924_15_53_23_Pro_wbc002.png"
+    },
+    {
+      "id": 3,
+      "image_id": 3,
+      "bbox_xyxy": [
+        951,
+        822,
+        1002,
+        872
+      ],
+      "bbox_coco": [
+        951,
+        822,
+        51,
+        50
+      ],
+      "area_px": 2550,
+      "file_name": "WIN_20260924_15_53_23_Pro_wbc003.png"
+    },
+    {
+      "id": 1,
+      "image_id": 4,
+      "bbox_xyxy": [
+        1251,
+        286,
+        1359,
+        379
+      ],
+      "bbox_coco": [
+        1251,
+        286,
+        108,
+        93
+      ],
+      "area_px": 10044,
+      "file_name": "WIN_20260924_15_54_02_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 4,
+      "bbox_xyxy": [
+        44,
+        571,
+        114,
+        656
+      ],
+      "bbox_coco": [
+        44,
+        571,
+        70,
+        85
+      ],
+      "area_px": 5950,
+      "file_name": "WIN_20260924_15_54_02_Pro_wbc002.png"
+    },
+    {
+      "id": 3,
+      "image_id": 4,
+      "bbox_xyxy": [
+        235,
+        172,
+        301,
+        252
+      ],
+      "bbox_coco": [
+        235,
+        172,
+        66,
+        80
+      ],
+      "area_px": 5280,
+      "file_name": "WIN_20260924_15_54_02_Pro_wbc003.png"
+    },
+    {
+      "id": 1,
+      "image_id": 5,
+      "bbox_xyxy": [
+        1268,
+        600,
+        1313,
+        654
+      ],
+      "bbox_coco": [
+        1268,
+        600,
+        45,
+        54
+      ],
+      "area_px": 2430,
+      "file_name": "WIN_20260924_15_56_04_Pro_wbc001.png"
+    },
+    {
+      "id": 1,
+      "image_id": 6,
+      "bbox_xyxy": [
+        554,
+        459,
+        613,
+        542
+      ],
+      "bbox_coco": [
+        554,
+        459,
+        59,
+        83
+      ],
+      "area_px": 4897,
+      "file_name": "WIN_20260924_15_57_04_Pro_wbc001.png"
+    },
+    {
+      "id": 1,
+      "image_id": 7,
+      "bbox_xyxy": [
+        1454,
+        336,
+        1546,
+        423
+      ],
+      "bbox_coco": [
+        1454,
+        336,
+        92,
+        87
+      ],
+      "area_px": 8004,
+      "file_name": "WIN_20260924_15_58_10_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 7,
+      "bbox_xyxy": [
+        176,
+        867,
+        239,
+        984
+      ],
+      "bbox_coco": [
+        176,
+        867,
+        63,
+        117
+      ],
+      "area_px": 7371,
+      "file_name": "WIN_20260924_15_58_10_Pro_wbc002.png"
+    },
+    {
+      "id": 1,
+      "image_id": 8,
+      "bbox_xyxy": [
+        1446,
+        49,
+        1530,
+        134
+      ],
+      "bbox_coco": [
+        1446,
+        49,
+        84,
+        85
+      ],
+      "area_px": 7140,
+      "file_name": "WIN_20260924_15_58_30_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 8,
+      "bbox_xyxy": [
+        444,
+        816,
+        502,
+        907
+      ],
+      "bbox_coco": [
+        444,
+        816,
+        58,
+        91
+      ],
+      "area_px": 5278,
+      "file_name": "WIN_20260924_15_58_30_Pro_wbc002.png"
+    },
+    {
+      "id": 3,
+      "image_id": 8,
+      "bbox_xyxy": [
+        1674,
+        439,
+        1759,
+        491
+      ],
+      "bbox_coco": [
+        1674,
+        439,
+        85,
+        52
+      ],
+      "area_px": 4420,
+      "file_name": "WIN_20260924_15_58_30_Pro_wbc003.png"
+    },
+    {
+      "id": 4,
+      "image_id": 8,
+      "bbox_xyxy": [
+        153,
+        136,
+        198,
+        212
+      ],
+      "bbox_coco": [
+        153,
+        136,
+        45,
+        76
+      ],
+      "area_px": 3420,
+      "file_name": "WIN_20260924_15_58_30_Pro_wbc004.png"
+    },
+    {
+      "id": 5,
+      "image_id": 8,
+      "bbox_xyxy": [
+        6,
+        386,
+        73,
+        432
+      ],
+      "bbox_coco": [
+        6,
+        386,
+        67,
+        46
+      ],
+      "area_px": 3082,
+      "file_name": "WIN_20260924_15_58_30_Pro_wbc005.png"
+    },
+    {
+      "id": 6,
+      "image_id": 8,
+      "bbox_xyxy": [
+        1827,
+        839,
+        1871,
+        881
+      ],
+      "bbox_coco": [
+        1827,
+        839,
+        44,
+        42
+      ],
+      "area_px": 1848,
+      "file_name": "WIN_20260924_15_58_30_Pro_wbc006.png"
+    },
+    {
+      "id": 1,
+      "image_id": 9,
+      "bbox_xyxy": [
+        0,
+        964,
+        181,
+        1080
+      ],
+      "bbox_coco": [
+        0,
+        964,
+        181,
+        116
+      ],
+      "area_px": 20996,
+      "file_name": "WIN_20260924_16_03_24_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 9,
+      "bbox_xyxy": [
+        1141,
+        755,
+        1210,
+        813
+      ],
+      "bbox_coco": [
+        1141,
+        755,
+        69,
+        58
+      ],
+      "area_px": 4002,
+      "file_name": "WIN_20260924_16_03_24_Pro_wbc002.png"
+    },
+    {
+      "id": 3,
+      "image_id": 9,
+      "bbox_xyxy": [
+        145,
+        40,
+        200,
+        91
+      ],
+      "bbox_coco": [
+        145,
+        40,
+        55,
+        51
+      ],
+      "area_px": 2805,
+      "file_name": "WIN_20260924_16_03_24_Pro_wbc003.png"
+    },
+    {
+      "id": 4,
+      "image_id": 9,
+      "bbox_xyxy": [
+        886,
+        196,
+        935,
+        238
+      ],
+      "bbox_coco": [
+        886,
+        196,
+        49,
+        42
+      ],
+      "area_px": 2058,
+      "file_name": "WIN_20260924_16_03_24_Pro_wbc004.png"
+    },
+    {
+      "id": 1,
+      "image_id": 10,
+      "bbox_xyxy": [
+        680,
+        53,
+        776,
+        149
+      ],
+      "bbox_coco": [
+        680,
+        53,
+        96,
+        96
+      ],
+      "area_px": 9216,
+      "file_name": "WIN_20260924_16_04_24_Pro_wbc001.png"
+    },
+    {
+      "id": 2,
+      "image_id": 10,
+      "bbox_xyxy": [
+        1501,
+        295,
+        1563,
+        395
+      ],
+      "bbox_coco": [
+        1501,
+        295,
+        62,
+        100
+      ],
+      "area_px": 6200,
+      "file_name": "WIN_20260924_16_04_24_Pro_wbc002.png"
+    },
+    {
+      "id": 3,
+      "image_id": 10,
+      "bbox_xyxy": [
+        960,
+        588,
+        1023,
+        658
+      ],
+      "bbox_coco": [
+        960,
+        588,
+        63,
+        70
+      ],
+      "area_px": 4410,
+      "file_name": "WIN_20260924_16_04_24_Pro_wbc003.png"
+    },
+    {
+      "id": 4,
+      "image_id": 10,
+      "bbox_xyxy": [
+        1685,
+        443,
+        1748,
+        506
+      ],
+      "bbox_coco": [
+        1685,
+        443,
+        63,
+        63
+      ],
+      "area_px": 3969,
+      "file_name": "WIN_20260924_16_04_24_Pro_wbc004.png"
+    },
+    {
+      "id": 5,
+      "image_id": 10,
+      "bbox_xyxy": [
+        284,
+        919,
+        321,
+        965
+      ],
+      "bbox_coco": [
+        284,
+        919,
+        37,
+        46
+      ],
+      "area_px": 1702,
+      "file_name": "WIN_20260924_16_04_24_Pro_wbc005.png"
+    }
+  ]
+}

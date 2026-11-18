@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# training leftovers (51 MB each; final adapters are kept)
+models/checkpoint-*/
+models_english/checkpoint-*/
+
+# OS junk
+desktop.ini
+Thumbs.db
+
+# local scratch
+*.log
+contact_sheet.png
