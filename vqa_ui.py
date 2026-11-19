@@ -1,24 +1,24 @@
 """
-Interactive VQA tester — ask your fine-tuned Qwen2-VL models questions about
-detected WBC crops, in Urdu or English, from a browser page.
+Interactive WBC pipeline tester — full cycle in one page:
 
-NEW standalone file. None of the existing pipeline scripts are changed.
+  1) upload a FULL microscope frame -> WBCs are detected (purple + size),
+     boxes drawn on the frame
+  2) every detected WBC is cropped and shown in a gallery
+  3) click a crop to select it
+  4) ask a question in Urdu or English -> answered about THAT selected WBC
 
-Two ways to use:
+NEW standalone file. None of the existing pipeline scripts are changed —
+detection reuses 01b_detect_crop_wbc.detect_wbcs() directly.
 
-1) Browser UI (recommended):
-   python vqa_ui.py
-   -> open the printed URL (http://<machine-ip>:7860) in any browser
-   -> pick an image from cropped_wbc (or upload one), type a question,
-      choose Urdu or English model, click Ask.
+Usage:
+  python vqa_ui.py            -> open http://127.0.0.1:7860
 
-2) One quick terminal question (no browser):
-   python vqa_ui.py --ask "What is the morphology of the nucleus?" ^
-       --image cropped_wbc/some_cell.png --lang english
+Terminal one-shot (no browser):
+  python vqa_ui.py --ask "What is the morphology of the nucleus?" ^
+      --image cropped_wbc/some_cell.png --lang english
 
-NOTE: needs a machine where PyTorch runs (lab server, or this PC only
-after the security-policy problem is solved). Torch is imported lazily,
-so the UI itself opens even before the model loads.
+NOTE: needs a machine where PyTorch runs (this PC: use the `vqa` conda env).
+Torch is imported lazily, so the UI opens even before the model loads.
 """
 
 import argparse
@@ -46,7 +46,8 @@ IMAGE_DIR_CANDIDATES = [
     "/media/iml/CVML10/Hajra/QWEN/cropped_wbc",
 ]
 
-DEFAULT_MAX_NEW_TOKENS = 80
+# dataset answers are short sentences; 48 is generous and keeps answers identical
+DEFAULT_MAX_NEW_TOKENS = 48
 
 
 def first_existing(paths):
@@ -157,6 +158,85 @@ def answer_question(image_path, question, lang="english",
 
 
 # ------------------------------------------------------------
+# WBC detection (reuses 01b_detect_crop_wbc.py exactly as-is)
+# ------------------------------------------------------------
+
+DETECTOR_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "01b_detect_crop_wbc.py"
+)
+
+_detector = None
+
+
+def load_detector():
+    global _detector
+    if _detector is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("wbc_detector", DETECTOR_PATH)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _detector = mod
+    return _detector
+
+
+def run_detection(frame_path):
+    """Detect WBCs on an uploaded microscope frame.
+
+    Returns (annotated_preview_path, gallery_items, status_text,
+             first_crop_path, crop_paths, selected_path)
+    """
+
+    if not frame_path:
+        return None, [], "Upload a microscope frame first.", None, [], None
+
+    import argparse
+    import tempfile
+    import cv2
+
+    det = load_detector()
+    cfg = argparse.Namespace(**det.DEFAULTS)
+
+    img = cv2.imread(frame_path)
+    if img is None:
+        return None, [], "Could not read that image file.", None, [], None
+
+    boxes, _ = det.detect_wbcs(img, cfg)
+    H, W = img.shape[:2]
+    pad = cfg.padding
+
+    session_dir = tempfile.mkdtemp(prefix="wbc_ui_")
+    preview = img.copy()
+    crops = []
+
+    for i, (x1, y1, x2, y2) in enumerate(boxes, start=1):
+        cx1, cy1 = max(x1 - pad, 0), max(y1 - pad, 0)
+        cx2, cy2 = min(x2 + pad, W), min(y2 + pad, H)
+        crop = img[cy1:cy2, cx1:cx2]
+        if crop.size == 0:
+            continue
+        crop_path = os.path.join(session_dir, f"wbc_{i:03d}.png")
+        cv2.imwrite(crop_path, crop)
+        crops.append(crop_path)
+
+        cv2.rectangle(preview, (x1, y1), (x2, y2), (0, 255, 0), 3)
+        cv2.putText(preview, f"WBC {i}", (x1, max(y1 - 10, 28)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
+    preview_path = os.path.join(session_dir, "annotated.png")
+    cv2.imwrite(preview_path, preview)
+
+    n = len(crops)
+    if n:
+        status = f"**{n} WBC(s) detected.** Click a crop on the right to select it, then ask your question."
+    else:
+        status = "No WBCs detected — try a closer/clearer frame (or tune `01b_detect_crop_wbc.py` flags)."
+
+    gallery_items = [(p, f"WBC {i}") for i, p in enumerate(crops, start=1)]
+    first = crops[0] if crops else None
+    return preview_path, gallery_items, status, first, crops, first
+
+
+# ------------------------------------------------------------
 # browser UI
 # ------------------------------------------------------------
 
@@ -164,47 +244,77 @@ def build_ui(image_dir, share, port):
 
     import gradio as gr
 
-    def choices():
-        return [os.path.basename(p) for p in list_images(image_dir)]
-
     with gr.Blocks(title="WBC VQA tester") as ui:
-        gr.Markdown("## WBC VQA tester — ask your fine-tuned Qwen2-VL")
+        gr.Markdown("## WBC VQA — detect → crop → select → ask")
 
         with gr.Row():
             with gr.Column():
-                dropdown = gr.Dropdown(
-                    choices=choices(),
-                    label=f"Pick a detected WBC from {image_dir}",
-                    type="value",
+                gr.Markdown("### 1 · Upload full microscope frame")
+                frame_in = gr.Image(type="filepath", label="Microscope frame")
+                detect_btn = gr.Button("Detect WBCs", variant="primary")
+                annotated = gr.Image(
+                    label="Detected WBCs (green boxes)", interactive=False
                 )
-                upload = gr.Image(
-                    type="filepath", label="...or upload any cell image"
+                status = gr.Markdown()
+
+            with gr.Column():
+                gr.Markdown("### 2 · Detected WBC crops — click one to select")
+                gallery = gr.Gallery(
+                    label="Cropped WBCs", columns=4, height=280,
+                    object_fit="contain", interactive=False,
                 )
-                refresh_btn = gr.Button("Refresh image list")
+                gr.Markdown("### 3 · Selected WBC")
+                selected_img = gr.Image(
+                    label="Selected WBC (click a crop above)",
+                    interactive=False, height=220,
+                )
+                qa_upload = gr.Image(
+                    type="filepath", height=170,
+                    label="...or upload a specific cell image instead",
+                )
+
+        with gr.Row():
             with gr.Column():
                 lang = gr.Radio(
                     ["english", "urdu"],
                     value="english",
                     label="Model (match your question language)",
                 )
+            with gr.Column():
                 question = gr.Textbox(
                     label="Question",
                     placeholder="What is the morphology of the nucleus?",
                 )
                 ask_btn = gr.Button("Ask", variant="primary")
-                answer = gr.Textbox(label="Answer", lines=4)
+                answer = gr.Textbox(label="Answer", lines=3)
 
-        def ask(picked, uploaded_path, q, lang_choice):
-            img = uploaded_path
-            if not img and picked:
-                img = os.path.join(image_dir, picked)
+        crops_state = gr.State([])
+        selected_state = gr.State(None)
+
+        det_outputs = [annotated, gallery, status, selected_img,
+                       crops_state, selected_state]
+
+        detect_btn.click(run_detection, [frame_in], det_outputs,
+                         api_name="detect")
+        frame_in.upload(run_detection, [frame_in], det_outputs)
+
+        def on_gallery_select(evt: gr.SelectData, crop_paths):
+            if crop_paths and evt.index is not None and evt.index < len(crop_paths):
+                chosen = crop_paths[evt.index]
+                return chosen, chosen
+            return None, None
+
+        gallery.select(on_gallery_select, [crops_state],
+                       [selected_img, selected_state])
+
+        def ask(q, lang_choice, qa_path, sel_path):
+            img = qa_path if qa_path else sel_path
             return answer_question(img, q, lang_choice)
 
-        ask_btn.click(ask, [dropdown, upload, question, lang], answer)
-        question.submit(ask, [dropdown, upload, question, lang], answer)
-        refresh_btn.click(
-            lambda: gr.update(choices=choices()), None, dropdown
-        )
+        ask_btn.click(ask, [question, lang, qa_upload, selected_state],
+                      answer, api_name="ask")
+        question.submit(ask, [question, lang, qa_upload, selected_state],
+                        answer)
 
     ui.launch(server_name="0.0.0.0", server_port=port, share=share)
 

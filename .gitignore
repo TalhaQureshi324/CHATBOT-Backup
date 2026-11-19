@@ -13,3 +13,6 @@ Thumbs.db
 # local scratch
 *.log
 contact_sheet.png
+
+# big installer wheels stay local (GitHub 100MB limit)
+*.whl
