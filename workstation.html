@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-Guided Microscope Slide Navigation — Clinical Workstation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            urdu: ['Noto Nastaliq Urdu', 'serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* =========================================================================
+       MEDICAL-GRADE LIGHT & DARK DESIGN TOKENS (ZERO GRADIENTS, PURE GLASS)
+       ========================================================================= */
+    :root {
+      --bg-canvas: #F1F5F9;
+      --dot-color: #CBD5E1;
+      --glass-surface: rgba(255, 255, 255, 0.78);
+      --glass-elevated: rgba(248, 250, 252, 0.85);
+      --glass-subcard: rgba(241, 245, 249, 0.72);
+      --glass-border: rgba(15, 23, 42, 0.09);
+      --glass-specular: rgba(255, 255, 255, 0.9);
+      --glass-shadow: 0 8px 30px -6px rgba(15, 23, 42, 0.07), 0 1px 3px rgba(15, 23, 42, 0.04);
+      --viewport-bg: #E2E8F0;
+      --viewport-grid: rgba(15, 23, 42, 0.06);
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #64748B;
+      --accent-primary: #0284C7;
+      --accent-primary-hover: #0369A1;
+      --accent-primary-soft: rgba(2, 132, 199, 0.12);
+      --accent-primary-border: rgba(2, 132, 199, 0.30);
+      --accent-emerald: #059669;
+      --accent-emerald-soft: rgba(5, 150, 105, 0.12);
+      --accent-emerald-border: rgba(5, 150, 105, 0.28);
+    }
+
+    html.dark {
+      --bg-canvas: #0B0E14;
+      --dot-color: #1E293B;
+      --glass-surface: rgba(22, 27, 36, 0.74);
+      --glass-elevated: rgba(28, 35, 47, 0.78);
+      --glass-subcard: rgba(13, 17, 23, 0.68);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-specular: rgba(255, 255, 255, 0.06);
+      --glass-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.4);
+      --viewport-bg: #080B10;
+      --viewport-grid: rgba(255, 255, 255, 0.04);
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --accent-primary: #0EA5E9;
+      --accent-primary-hover: #38BDF8;
+      --accent-primary-soft: rgba(14, 165, 233, 0.14);
+      --accent-primary-border: rgba(56, 189, 248, 0.32);
+      --accent-emerald: #10B981;
+      --accent-emerald-soft: rgba(16, 185, 129, 0.14);
+      --accent-emerald-border: rgba(16, 185, 129, 0.30);
+    }
+
+    /* Clean Micro-Dot Architectural Canvas Background */
+    body {
+      background-color: var(--bg-canvas);
+      background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+      background-size: 20px 20px;
+      color: var(--text-primary);
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    /* Authentic Frosted Glassmorphism Containers */
+    .glass-card {
+      background: var(--glass-surface);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      border: 1px solid var(--glass-border);
+      box-shadow: inset 0 1px 0 0 var(--glass-specular), var(--glass-shadow);
+      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .glass-header {
+      background: var(--glass-elevated);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .glass-subpanel {
+      background: var(--glass-subcard);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.28);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
+
+    /* Hide scrollbar utility for clean horizontal carousel */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Subtle precision grid inside microscope viewport */
+    .microscope-grid {
+      background-color: var(--viewport-bg);
+      background-image: 
+        linear-gradient(to right, var(--viewport-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--viewport-grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Bounding box smooth transitions */
+    .bbox-rect {
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .bbox-rect:hover {
+      filter: brightness(1.1);
+    }
+
+    /* Urdu typography alignment */
+    .urdu-text {
+      font-family: 'Noto Nastaliq Urdu', 'Inter', sans-serif;
+      line-height: 2.15;
+      direction: rtl;
+      text-align: right;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased selection:bg-sky-500/20 selection:text-sky-600 dark:selection:text-sky-300 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col">
+
+  <!-- TOP NAVIGATION HEADER BAR -->
+  <header class="w-full glass-header px-4 lg:px-6 py-2.5 shrink-0 z-30">
+    <div class="max-w-[1800px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Left: Institutional Badges + Application Title + Live Model Pill -->
+      <div class="flex items-center gap-3.5">
+        <!-- Unified Institutional Pill -->
+        <div class="flex items-center glass-subpanel rounded-full p-1">
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10" title="AI & Emerging Technologies">
+            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+            <span class="text-[11px] font-bold tracking-wider text-slate-800 dark:text-slate-200">AIET</span>
+          </div>
+          <div class="w-px h-3.5 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10" title="Information Technology University">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-[11px] font-bold tracking-wider text-slate-800 dark:text-slate-200">ITU</span>
+          </div>
+          <div class="w-px h-3.5 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/10" title="Intelligent Machines Lab">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span class="text-[11px] font-bold tracking-wider text-slate-800 dark:text-slate-200">IML</span>
+          </div>
+        </div>
+
+        <div class="hidden sm:block h-6 w-px bg-slate-300/70 dark:bg-white/10"></div>
+
+        <!-- Title & Status -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+          <h1 class="text-sm md:text-base lg:text-[17px] font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="w-7 h-7 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              </svg>
+            </span>
+            <span>AI-GUIDED MICROSCOPE SLIDE NAVIGATION</span>
+          </h1>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 w-fit">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Model Ready • Qwen2-VL + WBC Detector
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: Mode Segmented Control, Sample Loader & Light/Dark Theme Switcher -->
+      <div class="flex items-center gap-2.5 ml-auto sm:ml-0">
+        <!-- Mode Segmented Control -->
+        <div class="inline-flex items-center glass-subpanel p-1 rounded-full" role="group" aria-label="Analysis Mode">
+          <button id="modeFullFrame" type="button" onclick="setAnalysisMode('full')" class="px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-sky-600 text-white shadow-sm flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+            Full Frame
+          </button>
+          <button id="modeSingleCell" type="button" onclick="setAnalysisMode('single')" class="px-3 py-1.5 rounded-full text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
+            Single Cell
+          </button>
+        </div>
+
+        <!-- Sample Slide Button -->
+        <button type="button" onclick="loadSampleSlide(true)" class="px-3.5 py-1.5 rounded-full text-xs font-semibold glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all flex items-center gap-1.5 shadow-sm active:scale-[0.98]">
+          <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="hidden md:inline">Load Sample Slide</span>
+          <span class="md:hidden">Sample</span>
+        </button>
+
+        <!-- Light / Dark Theme Toggle Switcher -->
+        <div class="inline-flex items-center glass-subpanel p-1 rounded-full" role="group" aria-label="Theme Switcher">
+          <button id="themeLightBtn" type="button" onclick="setTheme('light')" class="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all" title="Switch to Light Mode">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </button>
+          <button id="themeDarkBtn" type="button" onclick="setTheme('dark')" class="w-7 h-7 rounded-full flex items-center justify-center bg-slate-800 text-sky-400 shadow-sm transition-all" title="Switch to Dark Mode">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN 3-ZONE CLINICAL WORKSTATION GRID -->
+  <main class="flex-1 w-full max-w-[1800px] mx-auto p-3 lg:p-4 lg:overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+
+      <!-- =================================================================== -->
+      <!-- ZONE 1 (LEFT 5 COLS ~42%): SLIDE ACQUISITION & FULL-FRAME VIEWPORT  -->
+      <!-- =================================================================== -->
+      <section class="lg:col-span-5 glass-card rounded-2xl flex flex-col overflow-hidden">
+        
+        <!-- Top Bar: Compact Upload Dropzone + Detect WBCs Solid Clinical CTA -->
+        <div class="p-3 border-b border-slate-200/70 dark:border-white/[0.07] flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <!-- File Input (Hidden) -->
+          <input type="file" id="slideFileInput" accept="image/*" class="hidden" onchange="handleFileUpload(event)" />
+          
+          <!-- Compact Interactive Dropzone -->
+          <div id="dropZone" onclick="document.getElementById('slideFileInput').click()" class="flex-1 flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 glass-subpanel cursor-pointer transition-all group">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0 group-hover:scale-105 transition-transform">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <p id="slideFileName" class="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">Peripheral_Blood_Smear_042.tiff</p>
+                <p id="slideFileSub" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Click or drop smear image to replace</p>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-mono uppercase tracking-wider bg-white/80 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 shrink-0">Replace</span>
+          </div>
+
+          <!-- Primary CTA: Detect WBCs (Clean Solid Clinical Sky Accent — Zero Gradient) -->
+          <button id="detectBtn" type="button" onclick="runRealRedetect()" class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-semibold text-xs tracking-wide shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 active:scale-[0.98]">
+            <svg id="detectSpinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <svg id="detectIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+            </svg>
+            <span>Detect WBCs</span>
+          </button>
+        </div>
+
+        <!-- Viewport Toolbar -->
+        <div class="px-3.5 py-2 border-b border-slate-200/70 dark:border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">Detected WBCs (Full-Frame Slide)</span>
+          </div>
+          
+          <!-- Viewport Controls: Toggle Boxes + Zoom -->
+          <div class="flex items-center gap-1.5">
+            <button id="toggleBboxBtn" type="button" onclick="toggleBoundingBoxes()" class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span id="toggleBboxText">Boxes: ON</span>
+            </button>
+
+            <div class="flex items-center glass-subpanel rounded-full overflow-hidden">
+              <button type="button" onclick="adjustZoom(-0.15)" class="px-2.5 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors" title="Zoom Out">−</button>
+              <span id="zoomLevelDisplay" class="px-2 py-1 text-[11px] font-mono font-semibold text-sky-600 dark:text-sky-400 border-x border-slate-200/80 dark:border-white/10">100%</span>
+              <button type="button" onclick="adjustZoom(0.15)" class="px-2.5 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors" title="Zoom In">+</button>
+              <button type="button" onclick="resetZoom()" class="px-2.5 py-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 border-l border-slate-200/80 dark:border-white/10 transition-colors" title="Reset Zoom">1:1</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Interactive Microscope Canvas / SVG Container -->
+        <div id="viewportContainer" class="relative flex-1 min-h-[340px] microscope-grid overflow-hidden flex items-center justify-center select-none">
+          
+          <!-- Scanning Overlay Effect (Frosted Glass — Zero Gradient) -->
+          <div id="scanOverlay" class="hidden absolute inset-0 z-20 bg-slate-900/20 dark:bg-slate-950/40 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none">
+            <div class="px-4 py-2.5 rounded-full glass-card flex items-center gap-3">
+              <div class="w-2.5 h-2.5 rounded-full bg-sky-500 animate-ping"></div>
+              <span class="text-xs font-mono font-semibold text-slate-800 dark:text-sky-300">Running WBC Detector (purple + size)...</span>
+            </div>
+          </div>
+
+          <!-- Zoomable Slide Stage -->
+          <div id="slideStage" class="w-full h-full flex items-center justify-center p-3.5 transition-transform duration-200 ease-out">
+            <!-- Uploaded Custom Image (Hidden unless user uploads a real image) -->
+            <div id="customImageWrapper" class="hidden relative w-full h-full flex items-center justify-center">
+              <img id="uploadedSlideImg" src="" alt="Uploaded Blood Smear" class="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-slate-700/80 shadow-md" />
+              <svg id="customBboxOverlay" viewBox="0 0 800 600" class="absolute inset-0 w-full h-full pointer-events-auto"></svg>
+            </div>
+
+            <!-- Built-in High-Detail Synthetic Peripheral Blood Smear SVG -->
+            <svg id="syntheticSlideSvg" viewBox="0 0 800 600" class="w-full h-full max-h-full rounded-xl border border-slate-300/80 dark:border-white/10 shadow-sm bg-[#f5e8ee]">
+              <defs>
+                <filter id="cellShadow" x="-15%" y="-15%" width="130%" height="130%">
+                  <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#583344" flood-opacity="0.20" />
+                </filter>
+              </defs>
+
+              <!-- Clean Solid Wright-Giemsa Background Smear Field -->
+              <rect width="800" height="600" fill="#f5e8ee" />
+
+              <!-- Layer 1: Background Erythrocytes (Red Blood Cells) & Platelets -->
+              <g id="rbcLayer"></g>
+
+              <!-- Layer 2: 8 Distinct White Blood Cells (Rendered via JS) -->
+              <g id="wbcCellsLayer"></g>
+
+              <!-- Layer 3: Interactive Green/Sky Detection Bounding Boxes -->
+              <g id="bboxLayer"></g>
+            </svg>
+          </div>
+
+          <!-- Corner Scale Bar Overlay (Frosted Glass Pill) -->
+          <div class="absolute bottom-3 left-3 px-3 py-1 rounded-full glass-card flex items-center gap-2 pointer-events-none">
+            <div class="w-8 h-1 bg-sky-600 dark:bg-sky-400 rounded-full"></div>
+            <span class="text-[10px] font-mono font-medium text-slate-700 dark:text-slate-300">20 µm • 100x Oil Immersion</span>
+          </div>
+        </div>
+
+        <!-- Bottom Telemetry Status Bar -->
+        <div class="px-3.5 py-2 border-t border-slate-200/70 dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono shrink-0">
+          <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="detectionSummaryText" class="font-semibold">8 WBCs detected in 0.42s</span>
+          </div>
+          <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+            <span>Detector: Purple + Size + Core</span>
+            <span class="opacity-40">|</span>
+            <span>VLM: Qwen2-VL-2B LoRA (EN/UR)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- ZONE 2 (CENTER 4 COLS ~33%): WBC CAROUSEL & HIGH-RES CELL INSPECTOR -->
+      <!-- =================================================================== -->
+      <section class="lg:col-span-4 glass-card rounded-2xl flex flex-col overflow-hidden">
+        
+        <!-- CAROUSEL HEADER -->
+        <div class="px-3.5 py-2.5 border-b border-slate-200/70 dark:border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <h2 class="text-xs font-bold tracking-wide uppercase text-slate-800 dark:text-slate-200">Detected WBCs Carousel</h2>
+          </div>
+
+          <!-- Carousel Navigation Controls -->
+          <div class="flex items-center gap-1.5">
+            <span id="carouselCounter" class="text-[11px] font-mono font-semibold text-sky-700 dark:text-sky-300 bg-sky-500/10 border border-sky-500/25 px-2.5 py-0.5 rounded-full mr-1">01 / 08</span>
+            <button type="button" onclick="navigateWbc(-1)" class="w-7 h-7 rounded-full glass-subpanel hover:bg-white dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Previous WBC (Left Arrow)">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button type="button" onclick="navigateWbc(1)" class="w-7 h-7 rounded-full glass-subpanel hover:bg-white dark:hover:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors" title="Next WBC (Right Arrow)">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- HORIZONTAL SCROLLABLE WBC CAROUSEL STRIP -->
+        <div class="p-2.5 border-b border-slate-200/70 dark:border-white/[0.07] shrink-0">
+          <div id="wbcCarouselTrack" class="flex items-center gap-2.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5 px-0.5">
+            <!-- Populated dynamically via JS with WBC #01 - #08 rounded glass cards -->
+          </div>
+        </div>
+
+        <!-- SELECTED WBC HIGH-RES INSPECTOR -->
+        <div class="flex-1 flex flex-col p-3.5 overflow-y-auto justify-between gap-3">
+          
+          <!-- Inspector Header & Stain Enhance Toggle -->
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="inspectorCellId" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">WBC #01</span>
+                <h3 id="inspectorCellType" class="text-sm font-bold text-slate-900 dark:text-white">Segmented Neutrophil</h3>
+              </div>
+              <p id="inspectorSubNote" class="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-snug">Multi-lobed nucleus (3–5 lobes) • Fine cytoplasmic granules</p>
+            </div>
+
+            <!-- Contrast / Stain Enhancement Toggle -->
+            <button id="contrastToggleBtn" type="button" onclick="toggleCellContrast()" class="px-2.5 py-1.5 rounded-full text-[11px] font-medium glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1.5 shrink-0" title="Toggle Stain Contrast">
+              <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span id="contrastLabel">Enhance Stain</span>
+            </button>
+          </div>
+
+          <!-- High-Resolution Magnified Crop Viewport -->
+          <div class="relative flex-1 min-h-[210px] rounded-2xl microscope-grid border border-slate-200/80 dark:border-white/[0.08] overflow-hidden flex items-center justify-center p-4 group">
+            <!-- Target Reticle Corners -->
+            <div class="absolute top-3 left-3 w-3.5 h-3.5 border-t-2 border-l-2 border-sky-500/70 rounded-tl-sm pointer-events-none"></div>
+            <div class="absolute top-3 right-3 w-3.5 h-3.5 border-t-2 border-r-2 border-sky-500/70 rounded-tr-sm pointer-events-none"></div>
+            <div class="absolute bottom-3 left-3 w-3.5 h-3.5 border-b-2 border-l-2 border-sky-500/70 rounded-bl-sm pointer-events-none"></div>
+            <div class="absolute bottom-3 right-3 w-3.5 h-3.5 border-b-2 border-r-2 border-sky-500/70 rounded-br-sm pointer-events-none"></div>
+
+            <!-- Confidence Floating Pill -->
+            <div class="absolute top-3 right-4 px-2.5 py-0.5 rounded-full glass-card text-[11px] font-mono text-emerald-700 dark:text-emerald-400">
+              Purple: <span id="inspectorConfidence" class="font-bold">—</span>
+            </div>
+
+            <!-- Magnified SVG Cell Render -->
+            <div id="magnifiedCellContainer" class="w-44 h-44 sm:w-48 sm:h-48 rounded-full shadow-md border-2 border-white dark:border-slate-700/80 overflow-hidden bg-[#f5e7ed] flex items-center justify-center transition-all duration-300">
+              <!-- Dynamic high-res cell SVG injected here -->
+            </div>
+
+            <!-- Bottom Crop Coordinates Pill -->
+            <div class="absolute bottom-3 left-4 px-2.5 py-0.5 rounded-full glass-card text-[10px] font-mono text-slate-600 dark:text-slate-400">
+              ROI: <span id="inspectorCoords">x:142, y:118 (96×96px)</span>
+            </div>
+          </div>
+
+          <!-- Morphological Telemetry Cards (real detection metrics) -->
+          <div class="grid grid-cols-3 gap-2 shrink-0">
+            <div class="glass-subpanel rounded-xl p-2.5">
+              <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">ROI Size</span>
+              <span id="metaDiameter" class="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 mt-0.5 block">—</span>
+            </div>
+            <div class="glass-subpanel rounded-xl p-2.5">
+              <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Position</span>
+              <span id="metaNCRatio" class="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 mt-0.5 block">—</span>
+            </div>
+            <div class="glass-subpanel rounded-xl p-2.5">
+              <span class="block text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Purple Score</span>
+              <span id="metaGranules" class="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 block">—</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- ZONE 3 (RIGHT 3 COLS ~25%): BILINGUAL CLINICAL AI ASSISTANT (EN/UR) -->
+      <!-- =================================================================== -->
+      <section class="lg:col-span-3 glass-card rounded-2xl flex flex-col overflow-hidden">
+        
+        <!-- Header & Bilingual Language Switcher -->
+        <div class="p-3 border-b border-slate-200/70 dark:border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </div>
+            <h2 class="text-xs font-bold tracking-wide uppercase text-slate-800 dark:text-slate-200">Clinical AI VLM</h2>
+          </div>
+
+          <!-- English / Urdu Segmented Toggle -->
+          <div class="inline-flex items-center glass-subpanel p-0.5 rounded-full" role="group" aria-label="Language Selection">
+            <button id="langEnBtn" type="button" onclick="setLanguage('en')" class="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all bg-sky-600 text-white shadow-sm">
+              English
+            </button>
+            <button id="langUrBtn" type="button" onclick="setLanguage('ur')" class="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
+              اردو
+            </button>
+          </div>
+        </div>
+
+        <!-- Prompt Input + Quick Clinical Prompts + Ask CTA -->
+        <div class="p-3.5 border-b border-slate-200/70 dark:border-white/[0.07] flex flex-col gap-2.5 shrink-0">
+          <div class="flex items-center justify-between">
+            <label for="aiPromptInput" id="promptLabel" class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Query Selected Cell (<span id="promptTargetBadge" class="text-sky-600 dark:text-sky-400 font-mono">WBC #01</span>)</label>
+            <button type="button" onclick="clearPrompt()" class="text-[11px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors">Clear</button>
+          </div>
+
+          <textarea id="aiPromptInput" rows="3" placeholder="Ask about the selected WBC morphology, nucleus, or clinical significance..." class="w-full rounded-xl glass-subpanel focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 p-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none transition-all"></textarea>
+
+          <!-- Quick Prompt Chips -->
+          <div id="quickChipsContainer" class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="useQuickPrompt('identify')" class="px-2.5 py-1 rounded-full text-[10px] font-medium glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-sky-700 dark:text-sky-300 transition-colors">
+              Identify cell type
+            </button>
+            <button type="button" onclick="useQuickPrompt('nucleus')" class="px-2.5 py-1 rounded-full text-[10px] font-medium glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
+              Nucleus & granules
+            </button>
+            <button type="button" onclick="useQuickPrompt('clinical')" class="px-2.5 py-1 rounded-full text-[10px] font-medium glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
+              Clinical significance
+            </button>
+          </div>
+
+          <!-- Ask AI CTA Button (Clean Solid Clinical Sky Accent — Zero Gradient) -->
+          <button id="askAiBtn" type="button" onclick="submitAiQuery()" class="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-bold text-xs tracking-wide shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+            <span id="askBtnText">Ask AI</span>
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- AI Diagnostic Answer Panel -->
+        <div class="flex-1 flex flex-col p-3.5 overflow-hidden">
+          <div class="flex items-center justify-between mb-2 shrink-0">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Diagnostic Answer</span>
+            </div>
+
+            <!-- Copy Answer Button -->
+            <button id="copyAnswerBtn" type="button" onclick="copyDiagnosticAnswer()" class="px-2.5 py-1 rounded-full text-[10px] font-medium glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1">
+              <svg class="w-3 h-3 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span id="copyBtnLabel">Copy</span>
+            </button>
+          </div>
+
+          <!-- Answer Content Card -->
+          <div id="aiAnswerBox" class="flex-1 rounded-xl glass-subpanel p-3.5 overflow-y-auto text-xs leading-relaxed text-slate-800 dark:text-slate-200">
+            <!-- Populated dynamically with structured clinical report -->
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- FOOTER CREDITS BAR -->
+  <footer class="w-full glass-header border-t border-slate-200/70 dark:border-white/[0.07] px-4 lg:px-6 py-2 shrink-0">
+    <div class="max-w-[1800px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+      <div class="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 font-medium text-slate-700 dark:text-slate-300">
+        <span>Muhammad Talha</span>
+        <span class="opacity-40">•</span>
+        <span>Assadullah</span>
+        <span class="opacity-40">•</span>
+        <span>Abdullah Salman</span>
+        <span class="hidden md:inline opacity-40 mx-1">|</span>
+        <span class="text-slate-500 dark:text-slate-400">Co-Supervisor: <strong class="text-slate-800 dark:text-slate-200 font-semibold">Dr. Mohsen Ali</strong></span>
+        <span class="opacity-40 mx-1">|</span>
+        <span class="text-slate-500 dark:text-slate-400">Supervisor: <strong class="text-slate-800 dark:text-slate-200 font-semibold">Dr. Waqas Sultani</strong></span>
+      </div>
+      <div class="text-[10px] font-mono text-slate-500">
+        Clinical Hematology Workstation v2.5
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Pill (Frosted Glass) -->
+  <div id="toastBanner" class="fixed bottom-12 right-5 z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="px-4 py-2 rounded-full glass-card text-xs font-medium text-slate-800 dark:text-sky-200 flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+      <span id="toastMessage">Action completed</span>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC & SYNTHETIC HEMATOLOGY ENGINE -->
+  <script>
+    // =========================================================================
+    // 1. LIVE DATA: wbcDataset is populated from /api/detect (processRealImage).
+    //    The original synthetic demo array below is kept but unused.
+    let wbcDataset = [];
+    const __demoDataset = [
+      {
+        id: 1,
+        code: 'WBC #01',
+        type: 'Segmented Neutrophil',
+        shortType: 'Neutrophil',
+        subtype: 'Mature Polymorphonuclear',
+        confidence: '98.4%',
+        x: 135, y: 115, w: 94, h: 94,
+        diameter: '13.4 µm',
+        ncRatio: '1 : 2.4',
+        granularity: 'Fine Azurophilic',
+        morphologyNote: 'Multi-lobed nucleus (4 distinct lobes connected by thin chromatin filaments) with pale pink cytoplasm.',
+        enReport: {
+          identification: 'Segmented Neutrophil (Polymorphonuclear Leukocyte)',
+          morphology: 'The cell measures ~13.4 µm in diameter and exhibits a characteristic hyper-segmented dark violet nucleus divided into 4 lobes linked by delicate chromatin strands. The abundant pale eosinophilic cytoplasm contains fine, evenly distributed neutrophilic granules.',
+          significance: 'Normal mature granulocyte constituting 50–70% of circulating leukocytes. Primary first-responder phagocyte against bacterial pathogens.'
+        },
+        urReport: {
+          identification: 'سیگمنٹڈ نیوٹروفل (Segmented Neutrophil)',
+          morphology: 'اس سفید خون کے خلیے کا قطر تقریباً 13.4 مائیکرو میٹر ہے۔ اس کا مرکزہ (Nucleus) گہرے جامنی رنگ کا ہے جو چار واضح حصوں (Lobes) میں تقسیم ہے اور باریک دھاگوں سے جڑا ہوا ہے۔ سائٹوپلازم ہلکے گلابی رنگ کا ہے جس میں باریک دانے موجود ہیں۔',
+          significance: 'یہ ایک صحت مند اور مکمل نشوونما یافتہ سفید خلیہ ہے جو خون کے سفید خلیات کا 50 سے 70 فیصد حصہ بناتا ہے اور بیکٹیریل انفیکشن کے خلاف فوری دفاع فراہم کرتا ہے۔'
+        }
+      },
+      {
+        id: 2,
+        code: 'WBC #02',
+        type: 'Small Lymphocyte',
+        shortType: 'Lymphocyte',
+        subtype: 'Mature Resting Lymphocyte',
+        confidence: '96.9%',
+        x: 365, y: 95, w: 82, h: 82,
+        diameter: '9.2 µm',
+        ncRatio: '4 : 1',
+        granularity: 'Agranular / Scant',
+        morphologyNote: 'Dense, round-to-oval eccentric nucleus with clumped chromatin and a thin rim of sky-blue cytoplasm.',
+        enReport: {
+          identification: 'Mature Small Lymphocyte',
+          morphology: 'Compact mononuclear cell (~9.2 µm) dominated by a deeply basophilic, round nucleus with densely clumped heterochromatin. Only a narrow crescentic rim of agranular, sky-blue cytoplasm is visible.',
+          significance: 'Normal adaptive immune cell (20–40% of differential). Responsible for humoral (B-cell) and cell-mediated (T-cell) immunity.'
+        },
+        urReport: {
+          identification: 'چھوٹا لیمفوسائٹ (Small Lymphocyte)',
+          morphology: 'یہ تقریباً 9.2 مائیکرو میٹر کا گول خلیہ ہے جس کا گہرا جامنی مرکزہ (Nucleus) خلیے کے بیشتر حصے کو گھیرے ہوئے ہے۔ اس کے کناروں پر ہلکے نیلے رنگ کے سائٹوپلازم کی ایک باریک پٹی دکھائی دیتی ہے۔',
+          significance: 'یہ مدافعتی نظام کا بنیادی خلیہ ہے جو وائرس کے خلاف مزاحمت اور اینٹی باڈیز بنانے میں اہم کردار ادا کرتا ہے۔'
+        }
+      },
+      {
+        id: 3,
+        code: 'WBC #03',
+        type: 'Monocyte',
+        shortType: 'Monocyte',
+        subtype: 'Circulating Macrophage Precursor',
+        confidence: '95.2%',
+        x: 585, y: 130, w: 112, h: 112,
+        diameter: '17.8 µm',
+        ncRatio: '1.5 : 1',
+        granularity: 'Ground-Glass / Vacuolated',
+        morphologyNote: 'Large kidney-shaped (reniform) folded nucleus with lacy chromatin and abundant blue-gray cytoplasm.',
+        enReport: {
+          identification: 'Monocyte (Largest Circulating Leukocyte)',
+          morphology: 'Large leukocyte (~17.8 µm) featuring an indented, kidney-shaped (reniform) nucleus with delicate, lacy chromatin. Abundant slate blue-gray cytoplasm shows a "ground-glass" appearance with occasional small phagocytic vacuoles.',
+          significance: 'Normal mononuclear phagocyte (2–8% of WBCs). Differentiates into tissue macrophages and dendritic cells upon extravasation.'
+        },
+        urReport: {
+          identification: 'مونوسائٹ (Monocyte)',
+          morphology: 'یہ خون کا سب سے بڑا سفید خلیہ ہے جس کا قطر 17.8 مائیکرو میٹر ہے۔ اس کا مرکزہ گردے یا گھوڑے کی نعل کی شکل کا ہے اور سائٹوپلازم سرمئی مائل نیلے رنگ کا ہے جس میں چھوٹے خلا (Vacuoles) موجود ہیں۔',
+          significance: 'یہ خلیہ جسم کے ٹشوز میں جا کر میکروفیج (Macrophage) میں تبدیل ہو جاتا ہے اور جراثیم و مردہ خلیات کو صاف کرتا ہے۔'
+        }
+      },
+      {
+        id: 4,
+        code: 'WBC #04',
+        type: 'Eosinophil',
+        shortType: 'Eosinophil',
+        subtype: 'Bilobed Granulocyte',
+        confidence: '97.8%',
+        x: 225, y: 275, w: 98, h: 98,
+        diameter: '14.1 µm',
+        ncRatio: '1 : 2.1',
+        granularity: 'Coarse Orange-Red',
+        morphologyNote: 'Characteristic bilobed nucleus packed with large, uniform, refractile reddish-orange eosinophilic granules.',
+        enReport: {
+          identification: 'Eosinophil (Bilobed Acidophilic Granulocyte)',
+          morphology: 'Measuring ~14.1 µm, this granulocyte displays a classic spectacle-like bilobed nucleus. The cytoplasm is densely packed with large, uniform, bright orange-red refractile granules that do not obscure the nucleus.',
+          significance: 'Normal eosinophil (1–4% of WBCs). Key effector cell in modulating allergic hypersensitivity reactions and parasitic defense.'
+        },
+        urReport: {
+          identification: 'ایوسینوفل (Eosinophil)',
+          morphology: 'اس خلیے کا قطر 14.1 مائیکرو میٹر ہے اور اس کا مرکزہ دو واضح حصوں پر مشتمل ہے۔ اس کے سائٹوپلازم میں چمکدار نارنجی اور سرخ رنگ کے بڑے دانے بھرے ہوئے ہیں۔',
+          significance: 'یہ خلیہ الرجی کے ردعمل کو متوازن رکھنے اور طفیلی جراثیم (Parasites) کے خلاف مدافعت فراہم کرنے میں اہم کردار ادا کرتا ہے۔'
+        }
+      },
+      {
+        id: 5,
+        code: 'WBC #05',
+        type: 'Segmented Neutrophil',
+        shortType: 'Neutrophil',
+        subtype: '3-Lobed Polymorphonuclear',
+        confidence: '97.1%',
+        x: 465, y: 280, w: 92, h: 92,
+        diameter: '12.9 µm',
+        ncRatio: '1 : 2.3',
+        granularity: 'Fine Neutrophilic',
+        morphologyNote: 'Tri-lobed condensed chromatin nucleus with clear inter-lobar bridges and neutral pink cytoplasm.',
+        enReport: {
+          identification: 'Segmented Neutrophil (3-Lobed Variant)',
+          morphology: 'Mature granulocyte (~12.9 µm) with three dense, dark-purple nuclear segments arranged in a C-arc configuration. Cytoplasm is pale pink with fine secondary granules and no toxic granulation.',
+          significance: 'Healthy baseline neutrophil morphology; indicates normal granulopoiesis without left-shift or toxic changes.'
+        },
+        urReport: {
+          identification: 'سیگمنٹڈ نیوٹروفل (تین حصوں والا مرکزہ)',
+          morphology: 'تقریباً 12.9 مائیکرو میٹر قطر کا حامل یہ صحت مند خلیہ تین گہرے جامنی حصوں والے مرکزے اور ہلکے گلابی سائٹوپلازم پر مشتمل ہے۔',
+          significance: 'یہ خون میں نارمل نیوٹروفل کی نشاندہی کرتا ہے اور کسی غیر معمولی انفیکشن یا زہریلے اثرات سے پاک ہے۔'
+        }
+      },
+      {
+        id: 6,
+        code: 'WBC #06',
+        type: 'Band Neutrophil',
+        shortType: 'Band Cell',
+        subtype: 'Immature Stab Granulocyte',
+        confidence: '93.6%',
+        x: 115, y: 435, w: 92, h: 92,
+        diameter: '13.1 µm',
+        ncRatio: '1 : 2.0',
+        granularity: 'Fine Cytoplasmic',
+        morphologyNote: 'Horseshoe / U-shaped unsegmented nucleus of uniform thickness without thread-like constrictions.',
+        enReport: {
+          identification: 'Band Neutrophil (Stab Cell)',
+          morphology: 'Juvenile neutrophil (~13.1 µm) characterized by a curved, horseshoe-shaped nucleus with parallel sides and no filament constriction. Cytoplasm mirrors mature neutrophils with fine pink granules.',
+          significance: 'Normally represents 0–5% of circulating WBCs. Mild elevations reflect active bone marrow response to acute inflammation.'
+        },
+        urReport: {
+          identification: 'بینڈ نیوٹروفل (Band Neutrophil)',
+          morphology: 'یہ 13.1 مائیکرو میٹر کا نیم پختہ نیوٹروفل ہے جس کا مرکزہ انگریزی حرف U یا گھوڑے کی نعل کی طرح مڑا ہوا ہے اور ابھی مکمل حصوں میں تقسیم نہیں ہوا۔',
+          significance: 'عام طور پر یہ خون میں 0 سے 5 فیصد تک ہوتے ہیں۔ ان کی تعداد میں اضافہ جسم میں کسی فوری سوزش یا انفیکشن کے خلاف ہڈی کے گودے کی سرگرمی کو ظاہر کرتا ہے۔'
+        }
+      },
+      {
+        id: 7,
+        code: 'WBC #07',
+        type: 'Reactive Lymphocyte',
+        shortType: 'Lymphocyte',
+        subtype: 'Activated Antigen-Stimulated',
+        confidence: '94.8%',
+        x: 345, y: 445, w: 96, h: 96,
+        diameter: '13.8 µm',
+        ncRatio: '2.2 : 1',
+        granularity: 'Peripheral Basophilia',
+        morphologyNote: 'Abundant pale-blue cytoplasm skirting adjacent red blood cells with darker basophilic peripheral edges.',
+        enReport: {
+          identification: 'Reactive (Atypical) Lymphocyte',
+          morphology: 'Enlarged lymphocyte (~13.8 µm) with moderately condensed oval chromatin and generous, pale-blue cytoplasm that indents around neighboring erythrocytes ("ballerina skirt" peripheral basophilia).',
+          significance: 'Indicates physiological antigenic stimulation, commonly observed during viral clearance or post-immunization immune activation.'
+        },
+        urReport: {
+          identification: 'ری ایکٹو لیمفوسائٹ (Reactive Lymphocyte)',
+          morphology: 'یہ 13.8 مائیکرو میٹر کا متحرک لیمفوسائٹ ہے جس کا ہلکا نیلا سائٹوپلازم پھیل کر قریبی سرخ خلیات کے گرد لپٹ رہا ہے اور کناروں سے گہرا نیلا ہے۔',
+          significance: 'یہ خلیہ وائرل انفیکشن یا ویکسینیشن کے بعد مدافعتی نظام کے فعال ہونے کی علامت ہے۔'
+        }
+      },
+      {
+        id: 8,
+        code: 'WBC #08',
+        type: 'Basophil',
+        shortType: 'Basophil',
+        subtype: 'Granulocyte (<1% Differential)',
+        confidence: '95.9%',
+        x: 590, y: 425, w: 90, h: 90,
+        diameter: '12.5 µm',
+        ncRatio: '1 : 1.8',
+        granularity: 'Dense Dark Violet-Black',
+        morphologyNote: 'Coarse, deeply basophilic purple-black histamine granules densely overlying and obscuring the segmented nucleus.',
+        enReport: {
+          identification: 'Basophil (Basophilic Granulocyte)',
+          morphology: 'Compact granulocyte (~12.5 µm) packed with large, irregular, deeply metachromatic purple-black granules containing histamine and heparin, characteristically obscuring the underlying bilobed nucleus.',
+          significance: 'Rarest normal leukocyte (<1% of WBCs). Mediates immediate hypersensitivity (IgE-mediated) and vascular permeability.'
+        },
+        urReport: {
+          identification: 'بیسوفل (Basophil)',
+          morphology: 'یہ 12.5 مائیکرو میٹر کا نایاب سفید خلیہ ہے جو گہرے جامنی اور سیاہ رنگ کے بڑے دانوں سے بھرا ہوا ہے، جو اس کے مرکزے کو تقریباً ڈھانپ لیتے ہیں۔',
+          significance: 'یہ خون کا نایاب ترین سفید خلیہ ہے (1 فیصد سے کم) جو الرجی اور مدافعتی ردعمل میں ہسٹامین خارج کرتا ہے۔'
+        }
+      }
+    ];
+
+    // =========================================================================
+    // 2. APPLICATION STATE
+    // =========================================================================
+    let state = {
+      selectedWbcId: 1,
+      language: 'en',
+      analysisMode: 'full',
+      theme: 'dark',
+      showBboxes: true,
+      zoomLevel: 1.0,
+      contrastEnhanced: false,
+      isCustomImage: false,
+      lastQueryType: 'default',
+      uploadedImageUrl: null,
+      uploadedBlob: null,
+      uploadedName: '',
+      lastAnswer: null,
+      lastAnswerCode: '',
+      askLang: 'en'
+    };
+
+    // =========================================================================
+    // 3. SYNTHETIC HEMATOLOGY SVG GENERATOR (FLAT MEDICAL VECTOR ARTWORK)
+    // =========================================================================
+    function generateCellArtworkSVG(wbc) {
+      const cx = wbc.x + wbc.w / 2;
+      const cy = wbc.y + wbc.h / 2;
+      const r = (wbc.w / 2) * 0.78;
+
+      switch (wbc.id) {
+        case 1: // Segmented Neutrophil (4 lobes)
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f4d6df" stroke="#d59eb0" stroke-width="1.5" />
+              <circle cx="${cx-12}" cy="${cy-14}" r="1.1" fill="#b87a96" opacity="0.7" />
+              <circle cx="${cx+15}" cy="${cy-10}" r="1.2" fill="#b87a96" opacity="0.7" />
+              <circle cx="${cx-16}" cy="${cy+12}" r="1.1" fill="#b87a96" opacity="0.7" />
+              <circle cx="${cx+12}" cy="${cy+16}" r="1.2" fill="#b87a96" opacity="0.7" />
+              <circle cx="${cx+4}" cy="${cy-18}" r="1" fill="#b87a96" opacity="0.65" />
+              <path d="M ${cx-12} ${cy-6} Q ${cx-2} ${cy-14} ${cx+8} ${cy-9} Q ${cx+16} ${cy} ${cx+10} ${cy+11} Q ${cx} ${cy+16} ${cx-11} ${cy+9}" fill="none" stroke="#4c1d6e" stroke-width="2.2" />
+              <ellipse cx="${cx-12}" cy="${cy-6}" rx="7.5" ry="6" transform="rotate(-25 ${cx-12} ${cy-6})" fill="#4a196b" />
+              <ellipse cx="${cx+7}" cy="${cy-10}" rx="7" ry="5.5" transform="rotate(20 ${cx+7} ${cy-10})" fill="#531e78" />
+              <ellipse cx="${cx+11}" cy="${cy+9}" rx="7.5" ry="6" transform="rotate(-15 ${cx+11} ${cy+9})" fill="#461666" />
+              <ellipse cx="${cx-10}" cy="${cy+10}" rx="6.8" ry="5.5" transform="rotate(35 ${cx-10} ${cy+10})" fill="#55207a" />
+            </g>`;
+
+        case 2: // Small Lymphocyte
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#a9d4f5" stroke="#7cb3de" stroke-width="1.5" />
+              <circle cx="${cx-2}" cy="${cy+1}" r="${r*0.78}" fill="#3b1659" />
+              <ellipse cx="${cx-5}" cy="${cy-3}" rx="6" ry="4" fill="#522378" opacity="0.65" />
+              <ellipse cx="${cx+4}" cy="${cy+5}" rx="5" ry="3.5" fill="#2a0d42" opacity="0.7" />
+            </g>`;
+
+        case 3: // Monocyte
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#c6d4e6" stroke="#99aec9" stroke-width="1.6" />
+              <circle cx="${cx+16}" cy="${cy-12}" r="3" fill="#eef4fa" opacity="0.85" />
+              <circle cx="${cx+19}" cy="${cy+4}" r="2.4" fill="#eef4fa" opacity="0.8" />
+              <circle cx="${cx+12}" cy="${cy+17}" r="2.8" fill="#eef4fa" opacity="0.8" />
+              <path d="M ${cx-18} ${cy-14} C ${cx-4} ${cy-24}, ${cx+12} ${cy-14}, ${cx+6} ${cy-2} C ${cx+1} ${cy+6}, ${cx+1} ${cy+10}, ${cx+8} ${cy+16} C ${cx+12} ${cy+22}, ${cx-12} ${cy+24}, ${cx-20} ${cy+10} C ${cx-25} ${cy+1}, ${cx-24} ${cy-8}, ${cx-18} ${cy-14} Z" fill="#5b2c7d" />
+              <path d="M ${cx-14} ${cy-8} C ${cx-6} ${cy-14}, ${cx+2} ${cy-8}, ${cx-2} ${cy} C ${cx-5} ${cy+6}, ${cx-4} ${cy+12}, ${cx-12} ${cy+11} Z" fill="#703d96" opacity="0.55" />
+            </g>`;
+
+        case 4: // Eosinophil
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f7c8b8" stroke="#d98e77" stroke-width="1.5" />
+              ${Array.from({length: 26}).map((_, idx) => {
+                const angle = (idx * 137.5) * (Math.PI / 180);
+                const dist = (idx % 5 + 1) * (r * 0.16);
+                const gx = cx + Math.cos(angle) * dist;
+                const gy = cy + Math.sin(angle) * dist;
+                return `<circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="2.3" fill="${idx % 2 === 0 ? '#ea580c' : '#dc2626'}" opacity="0.85" />`;
+              }).join('')}
+              <path d="M ${cx-10} ${cy} L ${cx+10} ${cy}" stroke="#4c1d6e" stroke-width="2.5" />
+              <ellipse cx="${cx-11}" cy="${cy-1}" rx="8" ry="10.5" transform="rotate(-12 ${cx-11} ${cy-1})" fill="#4c1d6e" />
+              <ellipse cx="${cx+11}" cy="${cy+1}" rx="8" ry="10.5" transform="rotate(12 ${cx+11} ${cy+1})" fill="#542278" />
+            </g>`;
+
+        case 5: // Segmented Neutrophil (3 lobes)
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f3d5de" stroke="#d199aa" stroke-width="1.5" />
+              <path d="M ${cx-11} ${cy-7} Q ${cx} ${cy-15} ${cx+12} ${cy-5} Q ${cx+14} ${cy+8} ${cx+2} ${cy+13}" fill="none" stroke="#4a196b" stroke-width="2.2" />
+              <ellipse cx="${cx-11}" cy="${cy-6}" rx="7.5" ry="6" transform="rotate(-30 ${cx-11} ${cy-6})" fill="#4a196b" />
+              <ellipse cx="${cx+11}" cy="${cy-4}" rx="7.5" ry="6" transform="rotate(35 ${cx+11} ${cy-4})" fill="#531e78" />
+              <ellipse cx="${cx+1}" cy="${cy+12}" rx="8" ry="6" transform="rotate(-10 ${cx+1} ${cy+12})" fill="#451563" />
+            </g>`;
+
+        case 6: // Band Neutrophil
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f4d7e0" stroke="#d49eb0" stroke-width="1.5" />
+              <path d="M ${cx-12} ${cy-11} C ${cx-16} ${cy+8}, ${cx-6} ${cy+16}, ${cx+2} ${cy+15} C ${cx+11} ${cy+14}, ${cx+15} ${cy+4}, ${cx+11} ${cy-11}" fill="none" stroke="#4e1b73" stroke-width="10.5" stroke-linecap="round" />
+              <path d="M ${cx-11} ${cy-10} C ${cx-14} ${cy+6}, ${cx-5} ${cy+14}, ${cx+2} ${cy+13} C ${cx+9} ${cy+12}, ${cx+13} ${cy+3}, ${cx+10} ${cy-10}" fill="none" stroke="#642a8f" stroke-width="4" stroke-linecap="round" opacity="0.5" />
+            </g>`;
+
+        case 7: // Reactive Lymphocyte
+          return `
+            <g filter="url(#cellShadow)">
+              <path d="M ${cx-r} ${cy-4} C ${cx-r+4} ${cy-r}, ${cx+r-4} ${cy-r}, ${cx+r} ${cy-2} C ${cx+r+2} ${cy+r-6}, ${cx+6} ${cy+r+2}, ${cx-4} ${cy+r} C ${cx-r+2} ${cy+r-2}, ${cx-r-2} ${cy+6}, ${cx-r} ${cy-4} Z" fill="#bfe0fa" stroke="#5b9bd5" stroke-width="2.5" />
+              <ellipse cx="${cx-3}" cy="${cy-2}" rx="${r*0.56}" ry="${r*0.48}" transform="rotate(-15 ${cx-3} ${cy-2})" fill="#4b1c70" />
+              <ellipse cx="${cx-5}" cy="${cy-4}" rx="${r*0.32}" ry="${r*0.24}" fill="#6b3296" opacity="0.6" />
+            </g>`;
+
+        case 8: // Basophil
+          return `
+            <g filter="url(#cellShadow)">
+              <circle cx="${cx}" cy="${cy}" r="${r}" fill="#d8c3e8" stroke="#9b7bb5" stroke-width="1.5" />
+              <ellipse cx="${cx-6}" cy="${cy}" rx="9" ry="11" fill="#4c1d6e" opacity="0.75" />
+              <ellipse cx="${cx+6}" cy="${cy}" rx="9" ry="11" fill="#4c1d6e" opacity="0.75" />
+              ${Array.from({length: 32}).map((_, idx) => {
+                const angle = (idx * 137.5) * (Math.PI / 180);
+                const dist = ((idx % 6) + 0.5) * (r * 0.13);
+                const gx = cx + Math.cos(angle) * dist;
+                const gy = cy + Math.sin(angle) * dist;
+                return `<circle cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="${(idx % 2 === 0 ? 2.8 : 2.2)}" fill="${idx % 3 === 0 ? '#1e0933' : '#3b0d63'}" opacity="0.92" />`;
+              }).join('')}
+            </g>`;
+      }
+    }
+
+    function renderSyntheticBloodSmear() {
+      const rbcLayer = document.getElementById('rbcLayer');
+      const wbcCellsLayer = document.getElementById('wbcCellsLayer');
+      const bboxLayer = document.getElementById('bboxLayer');
+
+      // Generate background Red Blood Cells using clean flat biological tones (no gradients)
+      let rbcMarkup = '';
+      const cols = 14;
+      const rows = 10;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const jitterX = Math.sin(r * 7 + c * 13) * 18;
+          const jitterY = Math.cos(r * 11 + c * 5) * 16;
+          const rx = 35 + c * 56 + jitterX;
+          const ry = 35 + r * 58 + jitterY;
+
+          const tooClose = wbcDataset.some(w => {
+            const wcx = w.x + w.w / 2;
+            const wcy = w.y + w.h / 2;
+            return Math.hypot(rx - wcx, ry - wcy) < (w.w * 0.62);
+          });
+
+          if (!tooClose && rx > 20 && rx < 780 && ry > 20 && ry < 580) {
+            const radius = 19 + ((r + c) % 4);
+            rbcMarkup += `
+              <g opacity="0.88">
+                <circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="${radius}" fill="#e69aa7" stroke="#c86d7d" stroke-width="1" />
+                <circle cx="${rx.toFixed(1)}" cy="${ry.toFixed(1)}" r="${(radius * 0.44).toFixed(1)}" fill="#f6dde2" opacity="0.82" />
+              </g>`;
+          }
+        }
+      }
+
+      const platelets = [[260, 140], [490, 180], [180, 360], [670, 310], [440, 520], [275, 515]];
+      platelets.forEach(([px, py]) => {
+        rbcMarkup += `<circle cx="${px}" cy="${py}" r="3.2" fill="#8b45a6" opacity="0.75" />`;
+        rbcMarkup += `<circle cx="${px+4}" cy="${py+2}" r="2.4" fill="#70308a" opacity="0.7" />`;
+      });
+
+      rbcLayer.innerHTML = rbcMarkup;
+      wbcCellsLayer.innerHTML = wbcDataset.map(wbc => generateCellArtworkSVG(wbc)).join('');
+
+      renderBoundingBoxes(bboxLayer);
+      renderBoundingBoxes(document.getElementById('customBboxOverlay'));
+    }
+
+    function renderBoundingBoxes(targetSvgGroup) {
+      if (!targetSvgGroup) return;
+      if (!state.showBboxes) {
+        targetSvgGroup.innerHTML = '';
+        return;
+      }
+
+      targetSvgGroup.innerHTML = wbcDataset.map(wbc => {
+        const isSelected = wbc.id === state.selectedWbcId;
+        const strokeColor = isSelected ? '#0284C7' : '#059669';
+        const strokeWidth = isSelected ? '3' : '2';
+        const labelBg = isSelected ? '#0284C7' : '#059669';
+
+        return `
+          <g class="bbox-rect" onclick="selectWbc(${wbc.id})">
+            <rect x="${wbc.x}" y="${wbc.y}" width="${wbc.w}" height="${wbc.h}" rx="10"
+                  fill="${isSelected ? 'rgba(2, 132, 199, 0.14)' : 'rgba(5, 150, 105, 0.06)'}"
+                  stroke="${strokeColor}" stroke-width="${strokeWidth}" />
+            
+            <!-- Precision Corner Markers -->
+            <path d="M ${wbc.x} ${wbc.y+12} L ${wbc.x} ${wbc.y} L ${wbc.x+12} ${wbc.y}" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="${isSelected ? '0.95' : '0.5'}" />
+            <path d="M ${wbc.x+wbc.w-12} ${wbc.y} L ${wbc.x+wbc.w} ${wbc.y} L ${wbc.x+wbc.w} ${wbc.y+12}" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="${isSelected ? '0.95' : '0.5'}" />
+
+            <!-- Top Label Pill -->
+            <rect x="${wbc.x}" y="${wbc.y - 22}" width="94" height="19" rx="6" fill="${labelBg}" />
+            <text x="${wbc.x + 7}" y="${wbc.y - 9}" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">
+              #${String(wbc.id).padStart(2, '0')} • ${wbc.confidence}
+            </text>
+          </g>`;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 4. WBC CAROUSEL & HIGH-RES CELL INSPECTOR RENDERING
+    // =========================================================================
+    function renderWbcCarousel() {
+      const track = document.getElementById('wbcCarouselTrack');
+      track.innerHTML = wbcDataset.map(wbc => {
+        const isSelected = wbc.id === state.selectedWbcId;
+        const viewBox = `${wbc.x - 4} ${wbc.y - 4} ${wbc.w + 8} ${wbc.h + 8}`;
+
+        return `
+          <button type="button" id="carousel-card-${wbc.id}" onclick="selectWbc(${wbc.id})"
+            class="group relative shrink-0 w-[108px] rounded-xl p-2 text-left transition-all duration-200 border ${
+              isSelected
+                ? 'bg-sky-500/12 dark:bg-sky-500/15 border-sky-600 dark:border-sky-400 ring-2 ring-sky-500/25 scale-[1.02]'
+                : 'glass-subpanel hover:bg-white/90 dark:hover:bg-slate-800/80'
+            }">
+            
+            <!-- Top Row: Cell ID & Confidence -->
+            <div class="flex items-center justify-between gap-1 mb-1.5">
+              <span class="text-[10px] font-mono font-bold ${isSelected ? 'text-sky-700 dark:text-sky-300' : 'text-slate-700 dark:text-slate-300'}">
+                #${String(wbc.id).padStart(2, '0')}
+              </span>
+              <span class="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded-full ${
+                isSelected
+                  ? 'bg-sky-600 text-white dark:bg-sky-400 dark:text-slate-950'
+                  : 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400'
+              }">
+                ${wbc.confidence}
+              </span>
+            </div>
+
+            <!-- Cell Crop Thumbnail (real detection crop or SVG fallback) -->
+            <div class="w-full h-14 rounded-lg bg-[#f5e8ee] border border-slate-200/80 dark:border-white/10 overflow-hidden flex items-center justify-center mb-1.5">
+              ${wbc.cropUrl
+                ? `<img src="${wbc.cropUrl}" class="w-full h-full object-contain" alt="${wbc.code}" />`
+                : `<svg viewBox="${viewBox}" class="w-full h-full">
+                     <rect x="${wbc.x - 10}" y="${wbc.y - 10}" width="${wbc.w + 20}" height="${wbc.h + 20}" fill="#f5e8ee" />
+                     ${generateCellArtworkSVG(wbc) || ''}
+                   </svg>`}
+            </div>
+
+            <!-- Cell Type Short Label -->
+            <p class="text-[10px] font-semibold truncate ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}">
+              ${wbc.shortType}
+            </p>
+          </button>`;
+      }).join('');
+    }
+
+    function updateSelectedInspector() {
+      const wbc = wbcDataset.find(item => item.id === state.selectedWbcId) || wbcDataset[0];
+      if (!wbc) {
+        document.getElementById('carouselCounter').textContent = '-- / --';
+        return;
+      }
+
+      document.getElementById('carouselCounter').textContent = `${String(wbc.id).padStart(2, '0')} / ${String(wbcDataset.length).padStart(2, '0')}`;
+      const activeCard = document.getElementById(`carousel-card-${wbc.id}`);
+      if (activeCard) {
+        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+
+      document.getElementById('inspectorCellId').textContent = wbc.code;
+      document.getElementById('inspectorCellType').textContent = wbc.type;
+      document.getElementById('inspectorSubNote').textContent = wbc.morphologyNote;
+      document.getElementById('inspectorConfidence').textContent = wbc.confidence;
+      document.getElementById('inspectorCoords').textContent = `x:${wbc.x}, y:${wbc.y} (${wbc.w}×${wbc.h}px)`;
+      document.getElementById('metaDiameter').textContent = wbc.diameter;
+      document.getElementById('metaNCRatio').textContent = wbc.ncRatio;
+      document.getElementById('metaGranules').textContent = wbc.granularity;
+      document.getElementById('promptTargetBadge').textContent = wbc.code;
+
+      const viewBox = `${wbc.x} ${wbc.y} ${wbc.w} ${wbc.h}`;
+      const filterStyle = state.contrastEnhanced ? 'filter: contrast(1.22) saturate(1.28);' : '';
+      document.getElementById('magnifiedCellContainer').innerHTML = wbc.cropUrl
+        ? `<img src="${wbc.cropUrl}" class="w-full h-full object-contain" style="${filterStyle}" alt="${wbc.code}" />`
+        : `
+        <svg viewBox="${viewBox}" class="w-full h-full" style="${filterStyle}">
+          <rect x="${wbc.x}" y="${wbc.y}" width="${wbc.w}" height="${wbc.h}" fill="#f5e7ed" />
+          ${generateCellArtworkSVG(wbc) || ''}
+        </svg>`;
+
+      renderDiagnosticAnswer(state.lastQueryType);
+    }
+
+    // =========================================================================
+    // 5. BILINGUAL AI ASSISTANT (ENGLISH / URDU)
+    // =========================================================================
+    function renderDiagnosticAnswer() {
+      const answerBox = document.getElementById('aiAnswerBox');
+
+      if (!state.lastAnswer) {
+        answerBox.classList.remove('urdu-text');
+        answerBox.innerHTML = `
+          <div class="text-center text-slate-500 dark:text-slate-400 text-xs py-10 leading-relaxed">
+            <div class="mx-auto mb-3 w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </div>
+            Select a WBC from the slide or carousel,<br />
+            then click <strong>Ask AI</strong> — answers come from the<br />
+            <span class="font-mono text-sky-600 dark:text-sky-400">fine-tuned Qwen2-VL model</span>.
+          </div>`;
+        return;
+      }
+
+      const isUrdu = /[\u0600-\u06FF]/.test(state.lastAnswer) || state.askLang === 'ur';
+      answerBox.classList.toggle('urdu-text', isUrdu);
+      answerBox.innerHTML = `
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-2">
+            <span class="font-bold ${isUrdu ? 'text-sm' : 'text-sky-700 dark:text-sky-400'}">
+              ${isUrdu ? 'ماہرِ خونیات کا جواب' : 'VLM Diagnostic Answer'}
+            </span>
+            <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400" dir="ltr">${state.lastAnswerCode || ''}</span>
+          </div>
+          <p class="${isUrdu ? 'text-sm' : 'text-slate-700 dark:text-slate-200'}">${state.lastAnswer}</p>
+        </div>`;
+    }
+
+    // =========================================================================
+    // 6. THEME SWITCHER & INTERACTIVE USER CONTROLS
+    // =========================================================================
+    function setTheme(theme) {
+      state.theme = theme;
+      const htmlEl = document.documentElement;
+      const lightBtn = document.getElementById('themeLightBtn');
+      const darkBtn = document.getElementById('themeDarkBtn');
+
+      if (theme === 'light') {
+        htmlEl.classList.remove('dark');
+        lightBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center bg-white text-sky-600 shadow-sm border border-slate-200/80 transition-all';
+        darkBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all';
+      } else {
+        htmlEl.classList.add('dark');
+        darkBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center bg-slate-800 text-sky-400 shadow-sm border border-white/10 transition-all';
+        lightBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all';
+      }
+    }
+
+    function selectWbc(id) {
+      state.selectedWbcId = id;
+      renderBoundingBoxes(document.getElementById('bboxLayer'));
+      renderBoundingBoxes(document.getElementById('customBboxOverlay'));
+      renderWbcCarousel();
+      updateSelectedInspector();
+    }
+
+    function navigateWbc(delta) {
+      let nextId = state.selectedWbcId + delta;
+      if (nextId < 1) nextId = wbcDataset.length;
+      if (nextId > wbcDataset.length) nextId = 1;
+      selectWbc(nextId);
+    }
+
+    function setLanguage(lang) {
+      state.language = lang;
+      const enBtn = document.getElementById('langEnBtn');
+      const urBtn = document.getElementById('langUrBtn');
+      const promptInput = document.getElementById('aiPromptInput');
+      const askBtnText = document.getElementById('askBtnText');
+
+      if (lang === 'en') {
+        enBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all bg-sky-600 text-white shadow-sm';
+        urBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+        promptInput.dir = 'ltr';
+        promptInput.placeholder = 'Ask about the selected WBC morphology, nucleus, or clinical significance...';
+        askBtnText.textContent = 'Ask AI';
+      } else {
+        urBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all bg-sky-600 text-white shadow-sm';
+        enBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+        promptInput.dir = 'rtl';
+        promptInput.placeholder = 'منتخب کردہ سفید خلیے کے بارے میں اردو یا انگریزی میں سوال پوچھیں...';
+        askBtnText.textContent = 'سوال پوچھیں (Ask AI)';
+      }
+
+      renderDiagnosticAnswer(state.lastQueryType);
+    }
+
+    function useQuickPrompt(type) {
+      state.lastQueryType = type;
+      const wbc = wbcDataset.find(item => item.id === state.selectedWbcId) || wbcDataset[0];
+      if (!wbc) { showToast('Upload or detect a slide first'); return; }
+      const input = document.getElementById('aiPromptInput');
+
+      if (state.language === 'en') {
+        if (type === 'identify') input.value = `Identify ${wbc.code} and summarize its key diagnostic features.`;
+        if (type === 'nucleus') input.value = `Describe the nuclear segmentation and cytoplasmic granules of ${wbc.code}.`;
+        if (type === 'clinical') input.value = `What is the clinical significance of ${wbc.code} (${wbc.type})?`;
+      } else {
+        if (type === 'identify') input.value = `${wbc.code} کی شناخت کریں اور اس کی اہم خصوصیات بیان کریں۔`;
+        if (type === 'nucleus') input.value = `${wbc.code} کے مرکزے اور دانوں کی ساخت بیان کریں۔`;
+        if (type === 'clinical') input.value = `${wbc.code} کی طبی اہمیت کیا ہے؟`;
+      }
+
+      submitAiQuery();
+    }
+
+    // =========================================================================
+    // 5b. REAL BACKEND: detection on /api/detect, VLM answers on /api/ask
+    // =========================================================================
+    function processRealImage(blob, filename, runDetect) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          state.uploadedImageUrl = e.target.result;
+          state.uploadedBlob = blob;
+          state.uploadedName = filename;
+          state.isCustomImage = true;
+          state.lastAnswer = null;
+
+          document.getElementById('syntheticSlideSvg').classList.add('hidden');
+          document.getElementById('customImageWrapper').classList.remove('hidden');
+          const img = document.getElementById('uploadedSlideImg');
+          img.src = state.uploadedImageUrl;
+          document.getElementById('slideFileName').textContent = filename;
+          document.getElementById('slideFileSub').textContent =
+            `${(blob.size / 1024).toFixed(1)} KB • Loaded`;
+
+          if (!runDetect) { resolve(); return; }
+
+          const overlay = document.getElementById('scanOverlay');
+          overlay.classList.remove('hidden');
+          document.getElementById('slideFileSub').textContent = 'Running WBC detection…';
+
+          try {
+            const fd = new FormData();
+            fd.append('file', blob, filename);
+            const resp = await fetch('/api/detect', { method: 'POST', body: fd });
+            if (!resp.ok) throw new Error(`server ${resp.status}`);
+            const data = await resp.json();
+
+            document.getElementById('customBboxOverlay')
+              .setAttribute('viewBox', `0 0 ${data.width} ${data.height}`);
+
+            wbcDataset = data.cells.map(c => ({
+              id: c.id, code: c.code,
+              type: 'White Blood Cell', shortType: 'WBC',
+              confidence: `${c.score}%`,
+              x: c.x, y: c.y, w: c.w, h: c.h,
+              diameter: `${c.w}×${c.h}px`,
+              ncRatio: `x:${c.x} y:${c.y}`,
+              granularity: `${c.score}%`,
+              cropUrl: c.crop,
+              morphologyNote: `Detected ROI ${c.w}×${c.h}px at (${c.x}, ${c.y}) • purple score ${c.score}%`
+            }));
+
+            state.selectedWbcId = wbcDataset.length ? wbcDataset[0].id : 0;
+            state.showBboxes = true;
+            resetZoom();
+
+            renderBoundingBoxes(document.getElementById('bboxLayer'));
+            renderBoundingBoxes(document.getElementById('customBboxOverlay'));
+            renderWbcCarousel();
+            updateSelectedInspector();
+            renderDiagnosticAnswer();
+
+            document.getElementById('detectionSummaryText').textContent =
+              `${data.count} WBCs detected in ${data.elapsed}s`;
+            document.getElementById('slideFileSub').textContent =
+              `${(blob.size / 1024).toFixed(1)} KB • ${data.width}×${data.height}px`;
+            showToast(`Detection complete: ${data.count} WBCs (${data.elapsed}s)`);
+          } catch (err) {
+            showToast('Detection failed: ' + err.message);
+          } finally {
+            overlay.classList.add('hidden');
+            resolve();
+          }
+        };
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function runRealRedetect() {
+      if (!state.uploadedBlob) {
+        showToast('Upload a slide image first');
+        return;
+      }
+      processRealImage(state.uploadedBlob, state.uploadedName, true);
+    }
+
+    async function submitAiQuery() {
+      const input = document.getElementById('aiPromptInput');
+      const query = input.value.trim();
+      const answerBox = document.getElementById('aiAnswerBox');
+
+      if (!query) { showToast('Type a question first'); return; }
+
+      const targetCell = wbcDataset.find(w => w.id === state.selectedWbcId);
+      let imagePayload, codeLabel;
+      if (state.analysisMode === 'single' || !targetCell || !targetCell.cropUrl) {
+        imagePayload = state.uploadedImageUrl;
+        codeLabel = 'Uploaded image';
+      } else {
+        imagePayload = targetCell.cropUrl;
+        codeLabel = targetCell.code;
+      }
+      if (!imagePayload) { showToast('Upload or detect a slide first'); return; }
+
+      state.lastAnswerCode = codeLabel;
+      state.askLang = state.language;
+      answerBox.classList.remove('urdu-text');
+      answerBox.innerHTML = `
+        <div class="flex items-center gap-2 text-sky-600 dark:text-sky-400 font-mono text-xs py-6 justify-center">
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span>Consulting fine-tuned Qwen2-VL on ${codeLabel}… (first run loads the model)</span>
+        </div>`;
+
+      try {
+        const resp = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: query,
+            lang: state.language === 'ur' ? 'urdu' : 'english',
+            image: imagePayload
+          })
+        });
+        const data = await resp.json();
+        state.lastAnswer = data.answer || `Error: ${data.error || 'no answer'}`;
+      } catch (err) {
+        state.lastAnswer = 'Error: ' + err.message;
+      }
+      renderDiagnosticAnswer();
+    }
+
+    function clearPrompt() {
+      document.getElementById('aiPromptInput').value = '';
+      state.lastQueryType = 'default';
+      renderDiagnosticAnswer('default');
+    }
+
+    function copyDiagnosticAnswer() {
+      const text = document.getElementById('aiAnswerBox').innerText;
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = text;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextArea);
+
+      const label = document.getElementById('copyBtnLabel');
+      label.textContent = 'Copied!';
+      showToast('Diagnostic report copied to clipboard');
+      setTimeout(() => { label.textContent = 'Copy'; }, 1800);
+    }
+
+    function setAnalysisMode(mode) {
+      state.analysisMode = mode;
+      const fullBtn = document.getElementById('modeFullFrame');
+      const singleBtn = document.getElementById('modeSingleCell');
+
+      if (mode === 'full') {
+        fullBtn.className = 'px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-sky-600 text-white shadow-sm flex items-center gap-1.5';
+        singleBtn.className = 'px-3 py-1.5 rounded-full text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1.5';
+        resetZoom();
+        showToast('Switched to Full-Frame Slide Navigation');
+      } else {
+        singleBtn.className = 'px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-sky-600 text-white shadow-sm flex items-center gap-1.5';
+        fullBtn.className = 'px-3 py-1.5 rounded-full text-xs font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1.5';
+        state.zoomLevel = 1.45;
+        applyZoom();
+        showToast('Single-Cell High-Magnification Focus Active');
+      }
+    }
+
+    function toggleBoundingBoxes() {
+      state.showBboxes = !state.showBboxes;
+      const btn = document.getElementById('toggleBboxBtn');
+      const text = document.getElementById('toggleBboxText');
+
+      if (state.showBboxes) {
+        btn.className = 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors flex items-center gap-1.5';
+        text.textContent = 'Boxes: ON';
+      } else {
+        btn.className = 'px-2.5 py-1 rounded-full text-[11px] font-medium glass-subpanel text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors flex items-center gap-1.5';
+        text.textContent = 'Boxes: OFF';
+      }
+
+      renderBoundingBoxes(document.getElementById('bboxLayer'));
+      renderBoundingBoxes(document.getElementById('customBboxOverlay'));
+    }
+
+    function adjustZoom(delta) {
+      state.zoomLevel = Math.min(2.2, Math.max(0.75, +(state.zoomLevel + delta).toFixed(2)));
+      applyZoom();
+    }
+
+    function resetZoom() {
+      state.zoomLevel = 1.0;
+      applyZoom();
+    }
+
+    function applyZoom() {
+      document.getElementById('slideStage').style.transform = `scale(${state.zoomLevel})`;
+      document.getElementById('zoomLevelDisplay').textContent = `${Math.round(state.zoomLevel * 100)}%`;
+    }
+
+    function toggleCellContrast() {
+      state.contrastEnhanced = !state.contrastEnhanced;
+      const btn = document.getElementById('contrastToggleBtn');
+      const label = document.getElementById('contrastLabel');
+
+      if (state.contrastEnhanced) {
+        btn.className = 'px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/35 transition-all flex items-center gap-1.5 shrink-0';
+        label.textContent = 'Stain: Enhanced';
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-full text-[11px] font-medium glass-subpanel hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1.5 shrink-0';
+        label.textContent = 'Enhance Stain';
+      }
+
+      updateSelectedInspector();
+    }
+
+    function runDetectionAnimation() {
+      const overlay = document.getElementById('scanOverlay');
+      const spinner = document.getElementById('detectSpinner');
+      const icon = document.getElementById('detectIcon');
+
+      overlay.classList.remove('hidden');
+      spinner.classList.remove('hidden');
+      icon.classList.add('hidden');
+
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        spinner.classList.add('hidden');
+        icon.classList.remove('hidden');
+        state.showBboxes = true;
+        renderBoundingBoxes(document.getElementById('bboxLayer'));
+        renderBoundingBoxes(document.getElementById('customBboxOverlay'));
+        const randomTime = (0.36 + Math.random() * 0.12).toFixed(2);
+        document.getElementById('detectionSummaryText').textContent = `8 WBCs detected in ${randomTime}s`;
+        showToast(`Detection complete: 8 White Blood Cells localized (${randomTime}s)`);
+      }, 650);
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      processRealImage(file, file.name, true);
+    }
+
+    async function loadSampleSlide(notify = false) {
+      try {
+        document.getElementById('slideFileSub').textContent = 'Fetching sample slide…';
+        const resp = await fetch('/api/sample');
+        if (!resp.ok) throw new Error('no samples on server');
+        const blob = await resp.blob();
+        const name = resp.headers.get('X-Sample-Name') || 'Sample_Slide.jpg';
+        await processRealImage(blob, name, true);
+      } catch (err) {
+        showToast('Could not load sample: ' + err.message);
+      }
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      document.getElementById('toastMessage').textContent = msg;
+      banner.classList.remove('translate-y-10', 'opacity-0');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        banner.classList.add('translate-y-10', 'opacity-0');
+      }, 2400);
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-sky-500');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-sky-500');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-sky-500');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileUpload({ target: { files: e.dataTransfer.files } });
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+      if (e.key === 'ArrowRight') navigateWbc(1);
+      if (e.key === 'ArrowLeft') navigateWbc(-1);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderWbcCarousel();
+      updateSelectedInspector();
+      renderDiagnosticAnswer();
+      loadSampleSlide(true);   // auto-load a REAL sample photo + run detection
+    });
+  </script>
+</body>
+</html>

@@ -2,11 +2,30 @@
 
 All commands are run from `C:\QWEN`.
 
-> **Update (Nov 17):** the VQA UI now WORKS on this PC (CPU). The security
-> policy blocks newest package builds, so everything runs from a special
-> conda env `vqa` with older, policy-passing versions. See section 4.
+> **CURRENT UI = the Clinical Workstation** (`workstation.html` + FastAPI
+> backend `workstation_server.py`) — the 3-zone glassmorphism design with
+> live detection, carousel and bilingual Q&A. The gradio UI (`vqa_ui.py`)
+> is kept as engine + fallback.
 
-## 4. Interactive VQA UI (browser — works on this PC)
+## Run the Clinical Workstation UI
+
+```bat
+cd C:\QWEN
+conda run -n vqa python workstation_server.py
+```
+
+- Opens on **http://127.0.0.1:8000** (also reachable from other devices on
+  the same network via the PC's LAN IP, e.g. http://172.16.18.148:8000)
+- Change port: `set PORT=9000` before running
+- Backend endpoints: `GET /api/sample`, `POST /api/detect` (image file),
+  `POST /api/ask` ({question, lang: english|urdu, image: data-url})
+- First "Ask AI" after start takes ~2 min (model loads onto GPU), then
+  ~2-5 s per question.
+
+## 4. Interactive VQA UI (gradio fallback)
+
+> The gradio UI works on this PC (GPU since Nov 19 — answers in seconds).
+> It shares the same `vqa` conda env and model engine as the workstation.
 
 ```bat
 cd C:\QWEN
